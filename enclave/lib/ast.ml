@@ -1,17 +1,12 @@
 open Env
 
-type secret = 
-  | Int of int
-  | Bool of bool
-  | String of string
-
 type expr =
   | Nint of int
   | Nbool of bool
   | Nstring of string
   | Var of ide
   | Let of ide * expr * expr
-  | EncLet of secret * ide * expr * expr
+  | SecLet of ide * expr * expr
   | Prim of ide * expr * expr
   | If of expr * expr * expr
   | Fun of ide * expr
@@ -19,7 +14,7 @@ type expr =
   | Enclave of ide * expr
   | Gateway of ide * expr
   | IncludeUntrusted of ide * expr
-  | ExecuteUntrusted of ide
+  | ExecuteUntrusted of string
 
 type value =
   | Int of int
