@@ -1,0 +1,26 @@
+(lang dune 3.7)
+
+(name enclave)
+
+(generate_opam_files true)
+
+(source
+ (github RakuJa/LBT_HW_1_ENCLAVES))
+
+(authors "Giachetto Daniele" "Antonio Osele")
+
+(maintainers "RakuJa TheAsel")
+
+(license LICENSE)
+
+(documentation https://url/to/documentation)
+
+(package
+ (name enclave)
+ (synopsis "Interpreter that implements enclaves")
+ (description "Interpreter that implements enclaves in runtime for Languege based security course at UniPi 2022/2023")
+ (depends ocaml dune)
+ (tags
+  (enclave interpeter runtime)))
+
+; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
