@@ -1,18 +1,5 @@
 open Env
  
-type identifier = string
-type ty =
-  | Nint of int
-  | Nbool of bool
-  | Nstring of string
-  | Nunit of unit
-  (* ... other possible types ... *)
-  
- 
-type func_type =
-  (* Function arguments (0..n), return type *)
-  | FuncType of ty * ty
- 
 type expr =
   | Nint of int
   | Nbool of bool
@@ -26,13 +13,13 @@ type expr =
   (* Lambda: parameters *)
   | Fun of identifier * expr
   | Call of expr * expr
-    (* EncLet type, id, variable value, body *)
-  | EncLet of ty * identifier * expr * expr
- 
+    (* SecLet type, id, variable value, body *)
+  | SecLet of identifier * expr * expr
   (* It's a list because we can separate all the expressions inside for further analysis*)
   | Enclave of identifier * expr list
   (* Type, Function name, argument_name, expr *)
-  | Gateway of func_type * identifier * string * expr
+  | Gateway of identifier * string * expr
+  | EncEnd of expr
   | IncludeUntrusted of identifier * expr
   | ExecuteUntrusted of expr
  

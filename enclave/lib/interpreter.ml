@@ -1,5 +1,6 @@
 open Ast
 open Env
+open EnvList
 
 let rec eval (e : expr) (env : value env) : value =
   match e with
@@ -10,7 +11,7 @@ let rec eval (e : expr) (env : value env) : value =
   | Var x -> lookup env x
   | Let (x, eRhs, letBody) ->
       let xVal = eval eRhs env in
-      let letEnv = (x, xVal) :: env in
+      let letEnv = EnvMap.add x xVal env in
       eval letBody letEnv
   | Prim (ope, e1, e2) -> (
     let v1 = eval e1 env in
@@ -34,19 +35,23 @@ let rec eval (e : expr) (env : value env) : value =
     match fClosure with
     | Closure (x, fBody, fDeclEnv) ->
         let xVal = eval eArg env in
-        let fBodyEnv = (x, xVal) :: fDeclEnv in
+        let fBodyEnv = EnvMap.add x xVal fDeclEnv in
         eval fBody fBodyEnv
     | _ -> failwith "eval Call: not a function")
-  | EncLet (ty, x, eRhs, letBody) ->
+  | SecLet (x, eRhs, letBody) ->
     (*TODO*)
     let xVal = eval eRhs env in
-    let letEnv = (x, xVal) :: env in
+    let letEnv = EnvMap.add x xVal env in
     eval letBody letEnv
   | Enclave (x, eList) ->
     (*TODO*)
     let x = 1 in
     eval x
-  | Gateway (funType, x, funName, eGate) ->
+  | Gateway (x, funName, eGate) ->
+    (*TODO*)
+    let x = 1 in
+    eval x
+  | EncEnd (stuff) ->
     (*TODO*)
     let x = 1 in
     eval x
