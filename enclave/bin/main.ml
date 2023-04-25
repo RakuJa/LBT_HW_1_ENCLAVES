@@ -1,23 +1,33 @@
 open Enclave.Ast
 open Enclave.Interpreter
-(* Enclave myEncl = *)
-let test = Enclave (
+
+let _test_gateway_1 = Enclave (
   "myEnclave",
    SecLet (
     "password", CstI(5),
     Gateway ("password", CstI(5), EndEnclave)
   ), CstI(7)
-  
 )
 
-(* let myEncl = Enclave {
-   SecLet password = 5 in
-   Let x = 6 in 4
-   End
+let _test_gateway_2 = Enclave (
+  "myEnclave",
+   SecLet (
+    "f", 
+    Fun (
+      "x",
+      Prim ("+", Var "x", CstI 1)
+    ) 
+    ,
+    Gateway ("password", Var ("f"), EndEnclave)
+  ), CstI(7)
+)
 
+let _test_gateway_3 = Enclave (
+  "myEnclave",
+   SecLet (
+    "password", CstI(5),
+    Gateway ("password", Fun ("leak", Var ("password")), EndEnclave)
+  ), CstI(7)
+)
 
-}
-   
-   
-   *)
-let _value = eval test [] []
+let _value_1 = eval _test_gateway_3 [] []
