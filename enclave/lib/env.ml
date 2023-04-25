@@ -1,28 +1,20 @@
 (*
   Variable identifiers are strings
 *)
-type identifier = string
-
-(* Implement the Map.OrderedType signature for ide *)
-module IdeOrder : Map.OrderedType with type t = identifier = struct
-  type t = identifier
-  let compare = String.compare
-end
-
-module EnvMap = Map.Make(IdeOrder)
+type ide = string
 
 (*
   An environment is a map from identifier to a value (what the identifier is bound to).
-  For simplicity we represent the environment as a map
+  For simplicity we represent the environment as an association list, i.e., a list of pair (identifier, data).
 *)
-type 'v env = 'v EnvMap.t
+type 'v env = (ide * 'v) list
+type 'v enclave = {secrets: (ide * 'v) list; generics: (ide * 'v) list; gateways: (ide * 'v) list}
 
 (*
   Given an environment {env} and an identifier {x} it returns the data {x} is bound to.
   If there is no binding, it raises an exception.
 *)
-let lookup env x =
-  try
-    EnvMap.find x env
-  with
-  | Not_found -> failwith (x ^ " not found")
+let rec lookup env x =
+  match env with
+  | [] -> failwith (x ^ " not found")
+  | (y, v) :: r -> if x = y then v else lookup r x

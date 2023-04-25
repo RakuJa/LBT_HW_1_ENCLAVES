@@ -1,31 +1,38 @@
 open Env
- 
+
 type expr =
-  | Nint of int
-  | Nbool of bool
-  | Nstring of string
-  | Nunit of unit
-  | Var of identifier
-  | Let of identifier * expr * expr
-  (* Tipes for the primitives, +, - etc*)
-  | Prim of identifier * expr * expr
+  | CstI of int
+  | CstB of bool
+  | Var of ide
+  | Let of ide * expr * expr
+  | Prim of ide * expr * expr
   | If of expr * expr * expr
-  (* Lambda: parameters *)
-  | Fun of identifier * expr
+  (* Lambda: parameters, body and permission domain *)
+  | Fun of ide * expr 
   | Call of expr * expr
-    (* SecLet type, id, variable value, body *)
-  | SecLet of identifier * expr * expr
-  (* It's a list because we can separate all the expressions inside for further analysis*)
-  | Enclave of identifier * expr list
-  (* Type, Function name, argument_name, expr *)
-  | Gateway of identifier * string * expr
-  | EncEnd of expr
-  | IncludeUntrusted of identifier * expr
-  | ExecuteUntrusted of expr
- 
+  (* Enclave keywords *)
+  | EnCall of ide * ide * expr (* How to call an enclave: EnCall nameEnclave gatewayName gatewayParams *)
+  | Enclave of ide * expr * expr (* identifier, enclave Body, nextAstExpr*)
+  | SecLet of ide * expr * expr (* Used for let secret*)
+  | Gateway of ide * expr * expr (* Used for let gateway*)
+  | EndEnclave
+  (* Include keywords *)
+  | IncludeUntrusted of ide * expr * expr
+  | EndUntrusted
+  (*| ExecuteUntrusted*)
 (*
   A runtime value is an integer or a function closure
   Boolean are encoded as integers.
 *)
-type value = Int of int | String of string | Unit of unit | Closure of identifier * expr * value env
- 
+
+type value = 
+    | Int of int 
+    | Closure of ide * expr * value env 
+    | Renclave of value enclave 
+    | EnClosure of ide * expr * value env * value env * value env
+
+let sec_enum e =
+  match e with
+  | "secure" -> 1
+  | _ -> 0;;
+
