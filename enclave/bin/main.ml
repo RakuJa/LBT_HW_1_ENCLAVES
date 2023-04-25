@@ -1,5 +1,5 @@
-open Stackinspection.Ast
-open Stackinspection.Interpreter
+open Enclave.Ast
+open Enclave.Interpreter
 (* Enclave myEncl = *)
 let test = Enclave (
   "myEnclave",

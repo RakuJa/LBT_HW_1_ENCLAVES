@@ -1,6 +1,67 @@
 open Ast
 open Env
 
+
+let rec eval_gateway (e: expr) (env : value env) (secrets : value env) : int * value =
+  match e with
+  | CstI i -> 0, Int i
+  | CstB b -> 0, Int (if b then 1 else 0)
+  | Var x -> (
+      try 1, lookup secrets x
+      with Not_found -> 1, lookup env x
+  )
+  | Let (x, eRhs, letBody) -> (
+      let _, xVal = eval_gateway eRhs env secrets in
+      let letEnv = (x, xVal) :: env in
+      eval_gateway letBody letEnv secrets
+  )
+  | Prim (ope, e1, e2) -> (
+      let _, v1 = eval_gateway e1 env secrets in
+      let _, v2 = eval_gateway e2 env secrets in
+      match (ope, v1, v2) with
+      | "*", Int i1, Int i2 -> 0, Int (i1 * i2)
+      | "+", Int i1, Int i2 -> 0, Int (i1 + i2)
+      | "-", Int i1, Int i2 -> 0, Int (i1 - i2)
+      | "=", Int i1, Int i2 -> 0, Int (if i1 = i2 then 1 else 0)
+      | "<", Int i1, Int i2 -> 0, Int (if i1 < i2 then 1 else 0)
+      | _ -> failwith "unknown primitive or wrong type")
+  | If (cond, e2, e3) -> (
+      let _, ev_cond = eval_gateway cond env secrets in
+      match ev_cond with
+      | Int 0 -> (
+          eval_gateway e3 env secrets
+      )
+      | Int _ -> (
+          eval_gateway e2 env secrets
+      )
+      | _ -> failwith "eval if")
+  | Fun (x, fBody) -> 0, Closure (x, fBody, env) (* Remove secret values from env!!*)
+  
+
+  | Call (eFun, eArg) -> (
+      let _, fClosure = eval_gateway eFun env secrets in
+      match fClosure with
+      | Closure (x, fBody, fDeclEnv) ->
+          (* xVal is evaluated in the current stack *)
+          let _, xVal = eval_gateway eArg env secrets in
+          let fBodyEnv = (x, xVal) :: fDeclEnv in
+
+          (* fBody is evaluated in the updated stack *)
+          eval_gateway fBody fBodyEnv secrets
+      | _ -> failwith "eval Call: not a function"
+  )
+
+    | Enclave(_, _, _) -> failwith "Enclave definition are not allowed in a gateway. Abort"
+        
+       (* Crea un metodo di supporto con funzionalità limitate (no include, no execute, no enclave)*)
+    | EndEnclave -> failwith "No enclave to close, abort"
+
+    | SecLet (_, _, _) -> failwith "Secret let is not allowed inside of an gateway. Abort."
+    | Gateway(_, _, _) -> failwith "Gateway let is not allowed inside of an gateway. Abort."
+    | EnCall(_, _, _) -> failwith "Enclave call are not allowed in a gateway. Abort"
+    | _ -> failwith "not yet implemented"    
+
+
 let rec eval (e : expr) (env : value env) (encl_list : (ide * value enclave) list) : value =
   match e with
   | CstI i -> Int i
@@ -30,7 +91,13 @@ let rec eval (e : expr) (env : value env) (encl_list : (ide * value enclave) lis
         let req_enclave = lookup encl_list enclIde in
         let req_gateway = lookup req_enclave.gateways gatewayIde in
         match req_gateway with
-        | EnClosure(_,expr,secrets,generics,_) -> eval expr env encl_list
+        | EnClosure(x,expr,secrets,generics,_) -> (
+          let encParValues = eval encParams env encl_list in
+          let fBodyEnv = (x, encParValues) :: env in
+        match eval_gateway expr (generics @ fBodyEnv) secrets with 
+        | 0, eval_gt_result -> eval_gt_result
+        | _, _ -> failwith "The gateway tried to return a secret! Abort"
+        )
         | _ -> failwith "Not an EnClosure, abort!"
 
   )
@@ -81,7 +148,7 @@ match e with
 | Gateway (x, eRhs, letBody) ->  (
     let xVal = eval_encave eRhs secrets generics gateways in 
     match xVal with
-    | EnClosure(x, fBody, secrets, generics, gateways) -> (
+    | EnClosure(_, _, secrets, generics, gateways) -> (
         let letEnv = (x, xVal) :: gateways in
         eval_encave letBody secrets generics letEnv
     )
@@ -137,73 +204,3 @@ and enclave_lookup (secrets : value env) (generics : value env) (gateways : valu
         with Not_found -> lookup gateways x
 
 
-
-let rec eval_gateway (e: expr) (env : value env) (secrets : value env) : int * value =
-    match e with
-    | CstI i -> 0, Int i
-    | CstB b -> 0, Int (if b then 1 else 0)
-    | Var x -> (
-        try 0, lookup env x
-        with Not_found -> 1, lookup secrets x
-    )
-    | Let (x, eRhs, letBody) -> (
-        let _, xVal = eval_gateway eRhs env secrets in
-        let letEnv = (x, xVal) :: env in
-        eval_gateway letBody letEnv secrets
-    )
-    | Prim (ope, e1, e2) -> (
-        let _, v1 = eval_gateway e1 env secrets in
-        let _, v2 = eval_gateway e2 env secrets in
-        match (ope, v1, v2) with
-        | "*", Int i1, Int i2 -> 0, Int (i1 * i2)
-        | "+", Int i1, Int i2 -> 0, Int (i1 + i2)
-        | "-", Int i1, Int i2 -> 0, Int (i1 - i2)
-        | "=", Int i1, Int i2 -> 0, Int (if i1 = i2 then 1 else 0)
-        | "<", Int i1, Int i2 -> 0, Int (if i1 < i2 then 1 else 0)
-        | _ -> failwith "unknown primitive or wrong type")
-    | If (cond, e2, e3) -> (
-        let _, ev_cond = eval_gateway cond env secrets in
-        match ev_cond with
-        | Int 0 -> (
-            eval_gateway e3 env secrets
-        )
-        | Int _ -> (
-            eval_gateway e2 env secrets
-        )
-        | _ -> failwith "eval if")
-    | Fun (x, fBody) -> 0, Closure (x, fBody, env) (* Remove secret values from env!!*)
-    
-
-    | Call (eFun, eArg) -> (
-        let secLev, fClosure = eval_gateway eFun env secrets in
-        match fClosure with
-        | Closure (x, fBody, fDeclEnv) ->
-            (* xVal is evaluated in the current stack *)
-            let secLev, xVal = eval_gateway eArg env secrets in
-            let fBodyEnv = (x, xVal) :: fDeclEnv in
-  
-            (* fBody is evaluated in the updated stack *)
-            eval_gateway fBody fBodyEnv secrets
-        | _ -> failwith "eval Call: not a function"
-    )
-  
-      | Enclave(x, enclBody, nextExpr) -> (
-          let result = eval_encave enclBody [][][] in (* Crea un nuovo record, con dentro secrets qualsiasi cosa instanziata
-         dal secretLet, nel generics instanziato dal let e gateway instanzato con la keyword gateway*)
-          match result with
-          | Renclave(enclaveRes) -> (
-              let encList = (x, enclaveRes) ::encl_list in
-              eval_gateway nextExpr env encList
-          )
-          | Int(_enclaveRes) -> failwith "Enclave cannot end in a integer"
-          | _ -> failwith "Constructed enclave is not valid"
-      )
-          
-         (* Crea un metodo di supporto con funzionalità limitate (no include, no execute, no enclave)*)
-      | EndEnclave -> failwith "No enclave to close, abort"
-  
-      | SecLet (_, _, _) -> failwith "Secret let is not allowed inside of an gateway. Abort."
-      | Gateway(_, _, _) -> failwith "Gateway let is not allowed inside of an gateway. Abort."
-      | EnCall(_, _, _) -> failwith "Enclave call are not allowed in a gateway. ABort"
-      | _ -> failwith "not yet implemented"    
-  
