@@ -173,7 +173,7 @@ let rec eval (e : expr) (env : value env) (encl_list : (ide * value enclave) lis
         let untrustVal = eval_untrusted inclBody env in
         match untrustVal with
             | UntrustedEnv(untrustEnv) -> (
-                let untrustBodyEnv =  env @ untrustEnv in
+                let untrustBodyEnv = untrustEnv in
                 eval nextExpr untrustBodyEnv encl_list
             )
             | _ -> failwith "Wrong return type from untrusted, maybe you are missing an EndUntrusted?"
