@@ -93,17 +93,18 @@ let rec eval_untrusted (e : expr) (env : value env) : value =
   
             (* fBody is evaluated in the updated stack *)
             eval_untrusted fBody fBodyEnv
-        | _ -> failwith "eval Call: not a function")
+        | _ -> failwith "eval Call: not a function"
+    )
 
-        | EndUntrusted -> UntrustedEnv(env)
-  
-      | Enclave(_, _, _) -> failwith "Cannot declare an enclave inside untrusted code"
-      | EnCall(_, _, _) -> failwith "Cannot call an enclave from untrusted code"
-      | EndEnclave -> failwith "Cannot end an enclave from untrusted code. Abort. "
-      | SecLet (_, _, _) -> failwith "Secret let is not allowed outside of an Enclave. Abort."
-      | Gateway(_, _, _) -> failwith "Gateway let is not allowed outside of an Enclave. Abort." 
-  
-      | IncludeUntrusted(_, _) -> failwith "Cannot reference untrusted code from untrusted code"
+    | EndUntrusted -> UntrustedEnv(env)
+
+    | Enclave(_, _, _) -> failwith "Cannot declare an enclave inside untrusted code. Abort."
+    | EnCall(_, _, _) -> failwith "Cannot call an enclave from untrusted code. Abort."
+    | EndEnclave -> failwith "Cannot end an enclave from untrusted code. Abort. "
+    | SecLet (_, _, _) -> failwith "Secret let is not allowed outside of an Enclave. Abort."
+    | Gateway(_, _, _) -> failwith "Gateway let is not allowed outside of an Enclave. Abort." 
+
+    | IncludeUntrusted(_, _) -> failwith "Cannot reference untrusted code from untrusted code. Abort."
   
 
 
@@ -138,11 +139,11 @@ let rec eval (e : expr) (env : value env) (encl_list : (ide * value enclave) lis
         let req_gateway = lookup req_enclave.gateways gatewayIde in
         match req_gateway with
         | EnClosure(x,expr,secrets,generics,_) -> (
-          let encParValues = eval encParams env encl_list in
-          let fBodyEnv = (x, encParValues) :: env in
-        match eval_gateway expr (generics @ fBodyEnv) secrets with 
-        | 0, eval_gt_result -> eval_gt_result
-        | _, _ -> failwith "The gateway tried to return a secret! Abort"
+            let encParValues = eval encParams env encl_list in
+            let fBodyEnv = (x, encParValues) :: env in
+            match eval_gateway expr (generics @ fBodyEnv) secrets with 
+                | 0, eval_gt_result -> eval_gt_result
+                | _, _ -> failwith "The gateway tried to return a secret! Abort."
         )
         | _ -> failwith "Not an EnClosure, abort!"
 
@@ -160,20 +161,14 @@ let rec eval (e : expr) (env : value env) (encl_list : (ide * value enclave) lis
       | _ -> failwith "eval Call: not a function")
 
     | Enclave(x, enclBody, nextExpr) -> (
-        let result = eval_encave enclBody [][][] in (* Crea un nuovo record, con dentro secrets qualsiasi cosa instanziata
-       dal secretLet, nel generics instanziato dal let e gateway instanzato con la keyword gateway*)
+        let result = eval_encave enclBody [][][] in
         match result with
-        | Renclave(enclaveRes) -> (
-            let encList = (x, enclaveRes) ::encl_list in
-            eval nextExpr env encList
-        )
-        | Int(_enclaveRes) -> failwith "Enclave cannot end in a integer"
-        | _ -> failwith "Constructed enclave is not valid"
+            | Renclave(enclaveRes) -> (
+                let encList = (x, enclaveRes) ::encl_list in
+                eval nextExpr env encList
+            )
+            | _ -> failwith "Wrong return type from enclave, maybe you are missing an EndEnclave?"
     )
-        
-       (* Crea un metodo di supporto con funzionalità limitate (no include, no execute, no enclave)*)
-    | EndEnclave -> failwith "No enclave to close, abort"
-
     | IncludeUntrusted(inclBody, nextExpr) -> (
         let untrustVal = eval_untrusted inclBody env in
         match untrustVal with
@@ -181,15 +176,14 @@ let rec eval (e : expr) (env : value env) (encl_list : (ide * value enclave) lis
                 let untrustBodyEnv =  env @ untrustEnv in
                 eval nextExpr untrustBodyEnv encl_list
             )
-            | _ -> failwith "Wrong return type from untrusted, maybe you are missing an End?"
+            | _ -> failwith "Wrong return type from untrusted, maybe you are missing an EndUntrusted?"
         
     ) 
-
-    | EndUntrusted -> failwith "No untrusted to close, abort"
-
+    | EndEnclave -> failwith "Cannot close an enclave outside of an Enclave block. Abort."
     | SecLet (_, _, _) -> failwith "Secret let is not allowed outside of an Enclave. Abort."
     | Gateway(_, _, _) -> failwith "Gateway let is not allowed outside of an Enclave. Abort."
-    (* | _ -> failwith "not yet implemented"   *)  
+
+    | EndUntrusted -> failwith "Cannot close untrusted code outisde of an Untrusted block. Abort." 
 
 and eval_encave (e : expr) (secrets : value env) (generics : value env) (gateways : value env) : value =
 match e with
@@ -207,12 +201,12 @@ match e with
 | Gateway (x, eRhs, letBody) ->  (
     let xVal = eval_encave eRhs secrets generics gateways in 
     match xVal with
-    | EnClosure(_, _, secrets, generics, gateways) -> (
-        let letEnv = (x, xVal) :: gateways in
-        eval_encave letBody secrets generics letEnv
-    )
-    | _ -> failwith "eval gateway: not a function. A let Gateway must be a Closure!"
-    )
+        | EnClosure(_, _, secrets, generics, gateways) -> (
+            let letEnv = (x, xVal) :: gateways in
+            eval_encave letBody secrets generics letEnv
+        )
+        | _ -> failwith "eval gateway: not a function. A let Gateway must be a Closure! Abort."
+)
 | Prim (ope, e1, e2) -> (
     let v1 = eval_encave e1 secrets generics gateways in
     let v2 = eval_encave e2 secrets generics gateways in
@@ -240,21 +234,12 @@ match e with
         (* fBody is evaluated in the updated stack *)
         eval_encave fBody fDeclSec fBodyEnv fDeclGat
     | _ -> failwith "eval Call: not a function")
-    (* type enclave = {secrets: (ide * value) list; generics: (ide * value) list; gateways: (ide * value) list} *)
 | EndEnclave -> Renclave({secrets; generics; gateways})
-| Enclave(_, _, _) -> failwith "Cannot declare an Enclave inside another enclave! Abort"
-| IncludeUntrusted(_, _) -> failwith "Cannot include untrusted code inside an enclave! Abort"
-| EndUntrusted -> failwith "Cannot end untrusted inside an enclave! Abort"
-| EnCall(_, _, _) -> failwith "Cannot call an enclave inside an enclave! Abort"
+| Enclave(_, _, _) -> failwith "Cannot declare an Enclave inside another enclave! Abort."
+| IncludeUntrusted(_, _) -> failwith "Cannot include untrusted code inside an enclave! Abort."
+| EndUntrusted -> failwith "Cannot end untrusted inside an enclave! Abort."
+| EnCall(_, _, _) -> failwith "Cannot call an enclave inside an enclave! Abort."
 
-
-
-     (* Crea un nuovo record, con dentro secrets qualsiasi cosa instanziata
-     dal secretLet, nel generics instanziato dal let e gateway instanzato con la keyword gateway*)
-
-     (* Crea un metodo di supporto con funzionalità limitate (no include, no execute, no enclave)*)
-
-     (* se da untrusted chiamo un gateway allora filwith, non controllo nemmeno se espone secrets*)
 
 and enclave_lookup (secrets : value env) (generics : value env) (gateways : value env) x : value =
     try  lookup secrets x
