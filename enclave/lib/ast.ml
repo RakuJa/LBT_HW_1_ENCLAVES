@@ -17,7 +17,7 @@ type expr =
   | Gateway of ide * expr * expr (* Used for let gateway*)
   | EndEnclave
   (* Include keywords *)
-  | IncludeUntrusted of ide * expr * expr
+  | IncludeUntrusted of expr * expr (* It's include AND execute at the same time, it does not need an identifier*)
   | EndUntrusted
   (*| ExecuteUntrusted*)
 (*
@@ -30,9 +30,5 @@ type value =
     | Closure of ide * expr * value env 
     | Renclave of value enclave 
     | EnClosure of ide * expr * value env * value env * value env
-
-let sec_enum e =
-  match e with
-  | "secure" -> 1
-  | _ -> 0;;
+    | UntrustedEnv of value env
 

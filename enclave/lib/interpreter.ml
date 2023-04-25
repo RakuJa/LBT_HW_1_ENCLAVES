@@ -59,7 +59,59 @@ let rec eval_gateway (e: expr) (env : value env) (secrets : value env) : int * v
     | SecLet (_, _, _) -> failwith "Secret let is not allowed inside of an gateway. Abort."
     | Gateway(_, _, _) -> failwith "Gateway let is not allowed inside of an gateway. Abort."
     | EnCall(_, _, _) -> failwith "Enclave call are not allowed in a gateway. Abort"
-    | _ -> failwith "not yet implemented"    
+    | _ -> failwith "not yet implemented"  
+    
+    
+let rec eval_untrusted (e : expr) (env : value env) : value =
+    match e with
+    | CstI i -> Int i
+    | CstB b -> Int (if b then 1 else 0)
+    | Var x -> lookup env x
+    | Let (x, eRhs, letBody) ->
+        let xVal = eval_untrusted eRhs env in
+        let letEnv = (x, xVal) :: env in
+        eval_untrusted letBody letEnv
+    | Prim (ope, e1, e2) -> (
+        let v1 = eval_untrusted e1 env in
+        let v2 = eval_untrusted e2 env in
+        match (ope, v1, v2) with
+        | "*", Int i1, Int i2 -> Int (i1 * i2)
+        | "+", Int i1, Int i2 -> Int (i1 + i2)
+        | "-", Int i1, Int i2 -> Int (i1 - i2)
+        | "=", Int i1, Int i2 -> Int (if i1 = i2 then 1 else 0)
+        | "<", Int i1, Int i2 -> Int (if i1 < i2 then 1 else 0)
+        | _ -> failwith "unknown primitive or wrong type")
+    | If (cond, e2, e3) -> (
+        match eval_untrusted cond env with
+        | Int 0 -> eval_untrusted e3 env
+        | Int _ -> eval_untrusted e2 env
+        | _ -> failwith "eval if")
+    | Fun (x, fBody) -> Closure (x, fBody, env)
+    | Call (eFun, eArg) -> (
+        let fClosure = eval_untrusted eFun env in
+        match fClosure with
+        | Closure (x, fBody, fDeclEnv) ->
+            (* xVal is evaluated in the current stack *)
+            let xVal = eval_untrusted eArg env in
+            let fBodyEnv = (x, xVal) :: fDeclEnv in
+  
+            (* fBody is evaluated in the updated stack *)
+            eval_untrusted fBody fBodyEnv
+        | _ -> failwith "eval Call: not a function")
+
+      | EndUntrusted -> failwith "No untrusted to close, abort"
+  
+      | Enclave(_, _, _) -> failwith "Cannot declare an enclave inside untrusted code"
+
+      | EnCall(_, _, _) -> failwith "Cannot call an enclave from untrusted code"
+          
+      | EndEnclave -> UntrustedEnv(env)
+  
+      | IncludeUntrusted(_, _) -> failwith "Cannot reference untrusted code from untrusted code"
+  
+      | SecLet (_, _, _) -> failwith "Secret let is not allowed outside of an Enclave. Abort."
+      | Gateway(_, _, _) -> failwith "Gateway let is not allowed outside of an Enclave. Abort."
+      (* | _ -> failwith "not yet implemented"   *)  
 
 
 let rec eval (e : expr) (env : value env) (encl_list : (ide * value enclave) list) : value =
@@ -128,9 +180,22 @@ let rec eval (e : expr) (env : value env) (encl_list : (ide * value enclave) lis
        (* Crea un metodo di supporto con funzionalità limitate (no include, no execute, no enclave)*)
     | EndEnclave -> failwith "No enclave to close, abort"
 
+    | IncludeUntrusted(inclBody, nextExpr) -> (
+        let untrustVal = eval_untrusted inclBody env in
+        match untrustVal with
+            | UntrustedEnv(untrustEnv) -> (
+                let untrustBodyEnv =  env @ untrustEnv in
+                eval nextExpr untrustBodyEnv encl_list
+            )
+            | _ -> failwith "Wrong return type from untrusted, maybe you are missing an End?"
+        
+    ) 
+
+    | EndUntrusted -> failwith "No untrusted to close, abort"
+
     | SecLet (_, _, _) -> failwith "Secret let is not allowed outside of an Enclave. Abort."
     | Gateway(_, _, _) -> failwith "Gateway let is not allowed outside of an Enclave. Abort."
-    | _ -> failwith "not yet implemented"    
+    (* | _ -> failwith "not yet implemented"   *)  
 
 and eval_encave (e : expr) (secrets : value env) (generics : value env) (gateways : value env) : value =
 match e with
@@ -184,7 +249,7 @@ match e with
     (* type enclave = {secrets: (ide * value) list; generics: (ide * value) list; gateways: (ide * value) list} *)
 | EndEnclave -> Renclave({secrets; generics; gateways})
 | Enclave(_, _, _) -> failwith "Cannot declare an Enclave inside another enclave! Abort"
-| IncludeUntrusted(_, _, _) -> failwith "Cannot include untrusted code inside an enclave! Abort"
+| IncludeUntrusted(_, _) -> failwith "Cannot include untrusted code inside an enclave! Abort"
 | EndUntrusted -> failwith "Cannot end untrusted inside an enclave! Abort"
 | EnCall(_, _, _) -> failwith "Cannot call an enclave inside an enclave! Abort"
 
