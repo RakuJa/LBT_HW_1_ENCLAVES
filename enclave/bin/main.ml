@@ -70,8 +70,9 @@ let _test_untrusted_3 = Enclave (
   )), IncludeUntrusted (EnCall ("myEnclave", "myGateway", CstI (1)), EndUntrusted
 ))
 
-(*
 let _test_1 = eval _test_gateway_1 [] []
+
+(*
 let _test_2 = eval _test_gateway_2 [] []
 let _test_3 = eval _test_gateway_3 [] []
 let _test_4 = eval _test_gateway_4 [] []
