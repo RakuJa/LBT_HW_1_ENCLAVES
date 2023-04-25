@@ -48,7 +48,7 @@ let _test_enclave_2 = Enclave (
 )
 
 let _test_untrusted_1 = IncludeUntrusted (
-   CstI (1), EndUntrusted
+   Let ("x", CstI (1), EndUntrusted), CstI (1)
 )
 
 let _test_untrusted_2 = IncludeUntrusted (
