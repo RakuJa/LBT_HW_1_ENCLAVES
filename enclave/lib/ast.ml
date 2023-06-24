@@ -1,8 +1,8 @@
 open Env
 
 type expr =
-  | CstI of int
-  | CstB of bool
+  | CstI of int * sec_level
+  | CstB of bool * sec_level
   | Var of ide
   | Let of ide * expr * expr
   | Prim of ide * expr * expr
@@ -19,6 +19,7 @@ type expr =
   (* Include keywords *)
   | IncludeUntrusted of expr * expr (* It's include AND execute at the same time, it does not need an identifier*)
   | EndUntrusted
+  | Declassify of expr
   (*| ExecuteUntrusted*)
 (*
   A runtime value is an integer or a function closure
@@ -26,9 +27,9 @@ type expr =
 *)
 
 type value = 
-    | Int of int 
-    | Closure of ide * expr * value env 
-    | Renclave of value enclave 
-    | EnClosure of ide * expr * value env * value env * value env
-    | UntrustedEnv of value env
+  | Int of int * sec_level
+  | Closure of ide * expr * value env 
+  | Renclave of value enclave 
+  | EnClosure of ide * expr * value env * value env * value env
+  | UntrustedEnv of value env
 
