@@ -4,70 +4,70 @@ open Enclave.Interpreter
 let _test_gateway_1 = Enclave (
   "myEnclave",
    SecLet (
-    "password", CstI(5),
-   Gateway ("password", CstI(5), EndEnclave)
-  ), CstI(7)
+    "password", CstI(5, High),
+   Gateway ("password", CstI(5, High), EndEnclave)
+  ), CstI(7, High)
 )
 
 let _test_gateway_2 = Enclave (
   "myEnclave",
   SecLet (
-   "x", CstI (1),
+   "x", CstI (1, High),
    SecLet (
     "f", 
     Fun (
       "y",
-      Prim ("+", Var ("x") , CstI 1)
+      Prim ("+", Var ("x") , CstI(1, High))
     ) 
     ,
    Gateway ("myGateway", Var ("f"), EndEnclave)
-  )), EnCall ("myEnclave", "myGateway", CstI (1))
+  )), EnCall ("myEnclave", "myGateway", CstI (1, High))
 )
 
 let _test_gateway_3 = Enclave (
   "myEnclave",
    SecLet (
-   "password", CstI(5),
+   "password", CstI(5, High),
    Gateway ("myGateway", Fun ("leak", Var ("password")), EndEnclave)
-  ), EnCall ("myEnclave", "myGateway", CstI (1))
+  ), EnCall ("myEnclave", "myGateway", CstI (1, High))
 )
 
 let _test_gateway_4 = Gateway 
-   ("myGateway", Fun ("outside", Var ("password")), CstI (1))
+   ("myGateway", Fun ("outside", Var ("password")), CstI (1, High))
 
 let _test_enclave_1 = Enclave (
    "myEnclave1",
    SecLet (
-    "password", CstI(5),
-   Enclave ("myEnclave2", CstI(5), EndEnclave)
-  ), CstI(7)
+    "password", CstI(5, High),
+   Enclave ("myEnclave2", CstI(5, High), EndEnclave)
+  ), CstI(7, High)
 )
 
 let _test_enclave_2 = Enclave (
-  "myEnclave", CstI (1), CstI (2)
+  "myEnclave", CstI (1, High), CstI (2, High)
 )
 
 let _test_untrusted_1 = IncludeUntrusted (
-   Let ("x", CstI (1), EndUntrusted), CstI (1)
+   Let ("x", CstI (1, High), EndUntrusted), CstI (1, High)
 )
 
 let _test_untrusted_2 = IncludeUntrusted (
-   IncludeUntrusted (CstI (1), EndUntrusted), EndUntrusted
+   IncludeUntrusted (CstI (1, High), EndUntrusted), EndUntrusted
 )
 
 let _test_untrusted_3 = Enclave (
   "myEnclave",
   SecLet (
-   "x", CstI (1),
+   "x", CstI (1, High),
    SecLet (
     "f", 
     Fun (
       "y",
-      Prim ("+", Var ("x") , CstI 1)
+      Prim ("+", Var ("x") , CstI (1, High))
     ) 
     ,
    Gateway ("myGateway", Var ("f"), EndEnclave)
-  )), IncludeUntrusted (EnCall ("myEnclave", "myGateway", CstI (1)), EndUntrusted
+  )), IncludeUntrusted (EnCall ("myEnclave", "myGateway", CstI (1, High)), EndUntrusted
 ))
 
 let _test_1 = eval _test_gateway_1 [] []
