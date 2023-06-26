@@ -11,8 +11,8 @@ type sec_level =
   | High
 
 (*
-  An environment is a map from identifier to a value (what the identifier is bound to).
-  For simplicity we represent the environment as an association list, i.e., a list of pair (identifier, data, security_level).
+  An environment is a map from identifier to {value, sec_level}  (what the identifier is bound to).
+  For simplicity we represent the environment as an association list, i.e., a list of (identifier, data, sec_level).
 *)
 
 type 'v env = (ide * 'v * sec_level) list

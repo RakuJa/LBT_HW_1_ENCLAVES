@@ -130,7 +130,15 @@ let examples =
       print_endline "_test_if_1";
       Let ("x", CstI(1, High), 
            If (
-             Prim ("=", Var("x"), CstI(2, High)), CstB(true, High), CstB (false, High)
+             Prim ("<", Var("x"), CstI(2, High)), CstI(2, High), CstI(3, High)
+           )
+          )
+    ) [] [];
+    execWithoutFailure (
+      print_endline "_test_if_2";
+      Let ("x", CstI(1, Low), 
+           If (
+             Prim ("<", Var("x"), CstI(2, Low)), CstI(2, Low), CstI(3, Low)
            )
           )
     ) [] [];
