@@ -22,7 +22,7 @@ type 'v enclave = {secrets: (ide * 'v * sec_level) list; generics: (ide * 'v * s
   Given an environment {env} and an identifier {x} it returns the data {x} is bound to and its security level {sec}.
   If there is no binding, it raises an exception.
 *)
-let rec lookup env x =
+let rec lookup env x: 'v =
   match env with
   | [] -> failwith (x ^ " not found")
   | (y, v, sec) :: r -> if x = y then (v, sec) else lookup r x

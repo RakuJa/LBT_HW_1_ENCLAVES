@@ -32,12 +32,12 @@ let examples =
       Enclave (
         "myEnclave",
         SecLet (
-          "x", CstI (1, High),
+          "x", CstI (1, Low),
           SecLet (
             "f", 
             Fun (
               "y",
-              Prim ("+", Var ("x") , CstI(1, High))
+              Prim ("+", Var ("x") , CstI(1, Low))
             ) 
             ,
             Gateway ("myGateway", Var ("f"), EndEnclave)
@@ -114,10 +114,14 @@ let examples =
         )
       )
     ) [] [];
+
+
+    (* Declassify test *)
+
     execWithoutFailure (
       print_endline "_test_declassify_1";
       Declassify (
-        Prim ("+", CstI(1, High), CstI(2, Low))
+        Prim ("+", CstI(1, High), CstI(2, High))
       )
     ) [] [];
     execWithFailure (
@@ -126,14 +130,107 @@ let examples =
         Prim ("+", CstI(1, Low), CstI(2, Low))
       )
     ) [] [];
-    execWithFailure (
-      print_endline "_test_if_1";
+
+
+    (* If test *)
+
+    execWithoutFailure (
+      print_endline "_test_if_1_high_guard_all_high_branch";
       Let ("x", CstI(1, High), 
            If (
              Prim ("=", Var("x"), CstI(2, High)), CstB(true, High), CstB (false, High)
            )
           )
     ) [] [];
+    execWithFailure (
+      print_endline "_test_if_2_high_guard_all_low_branch";
+      Let ("x", CstI(1, High), 
+           If (
+             Prim ("=", Var("x"), CstI(2, High)), CstB(true, Low), CstB (false, Low)
+           )
+          )
+    ) [] [];
+    execWithoutFailure (
+      print_endline "_test_if_3_high_guard_a_branch_low_b_branch_high";
+      Let ("x", CstI(1, High), 
+           If (
+             Prim ("=", Var("x"), CstI(2, High)), CstB(true, Low), CstB (false, High)
+           )
+          )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_if_4_high_guard_b_branch_low_a_branch_high";
+      Let ("x", CstI(1, High), 
+           If (
+             Prim ("=", Var("x"), CstI(2, High)), CstB(true, High), CstB (false, Low)
+           )
+          )
+    ) [] [];
+
+    (* Prim test *)
+
+    execWithoutFailure (
+      print_endline "_test_prim_1_comp_high_with_high_and_equals";
+      Prim (
+        "=", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_comp_low_with_low_and_equals";
+      Prim (
+        "=", CstI(2, Low), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_comp_high_with_low_and_equals";
+      Prim (
+        "=", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_comp_low_with_high_and_equals";
+      Prim (
+        "=", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_1_sum_high_with_high_and_equals";
+      Prim (
+        "+", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_sum_low_with_low_and_equals";
+      Prim (
+        "+", CstI(2, Low), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_sum_high_with_low_and_equals";
+      Prim (
+        "+", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_sum_low_with_high_and_equals";
+      Prim (
+        "+", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
+
+
+    (* Test funcall *)
+
     execWithoutFailure (
       print_endline "_test_funcall_1";
       Call (

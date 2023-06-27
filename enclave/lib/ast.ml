@@ -19,8 +19,8 @@ type expr =
   (* Include keywords *)
   | IncludeUntrusted of expr * expr (* It's include AND execute at the same time, it does not need an identifier*)
   | EndUntrusted
+  (*| Declassify operator for taint *)
   | Declassify of expr
-  (*| ExecuteUntrusted*)
 (*
   A runtime value is an integer or a function closure
   Boolean are encoded as integers.
