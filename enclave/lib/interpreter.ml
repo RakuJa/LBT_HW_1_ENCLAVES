@@ -17,7 +17,6 @@ let rec eval_gateway (e: expr) (env : value env) (secrets : value env) : value =
       let letEnv = (x, xVal) :: env in
       eval_gateway letBody letEnv secrets
     )
-  (*if either operand is high-security, the result is high-security; otherwise, it is marked as low-security*)
   | Prim (ope, e1, e2) -> (
       let v1 = eval_gateway e1 env secrets in
       let v2 = eval_gateway e2 env secrets in
@@ -44,7 +43,6 @@ let rec eval_gateway (e: expr) (env : value env) (secrets : value env) : value =
       | "<", _, _ -> failwith "Cannot use a low value together with a high value" 
       | _ -> failwith "unknown primitive or wrong type"
     )
-  (*prevent the evaluation of High sec_level to prevent leakage*)
   | If (cond, e2, e3) -> (
       let ev_cond = eval_gateway cond env secrets in
       match ev_cond with
@@ -72,7 +70,6 @@ let rec eval_gateway (e: expr) (env : value env) (secrets : value env) : value =
       | _ -> failwith "eval if"
     )
   | Fun (x, fBody) -> Closure (x, fBody, env)
-  (*using "High" as default sec_level*)
   | Call (eFun, eArg) -> (
       let fClosure = eval_gateway eFun env secrets in
       match fClosure with
@@ -83,7 +80,6 @@ let rec eval_gateway (e: expr) (env : value env) (secrets : value env) : value =
         )
       | _ -> failwith "eval Call: not a function"
     )
-  (*Change a High value to Low, fail if already Low*)
   | Declassify e -> (
       let v = eval_gateway e env secrets in
       match v with
