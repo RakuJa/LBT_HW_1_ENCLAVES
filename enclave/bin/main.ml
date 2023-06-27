@@ -143,7 +143,7 @@ let examples =
           )
     ) [] [];
     execWithoutFailure (
-      print_endline "_test_if_2";
+      print_endline "_test_if_2_low guard_all_low_branch";
       Let ("x", CstI(1, Low), 
            If (
              Prim ("<", Var("x"), CstI(2, Low)), CstI(2, Low), CstI(3, Low)
@@ -151,7 +151,7 @@ let examples =
           )
     ) [] [];
     execWithFailure (
-      print_endline "_test_if_2_high_guard_all_low_branch";
+      print_endline "_test_if_3_high_guard_all_low_branch";
       Let ("x", CstI(1, High), 
            If (
              Prim ("=", Var("x"), CstI(2, High)), CstB(true, Low), CstB (false, Low)
@@ -159,7 +159,7 @@ let examples =
           )
     ) [] [];
     execWithoutFailure (
-      print_endline "_test_if_3_high_guard_a_branch_low_b_branch_high";
+      print_endline "_test_if_4_high_guard_a_branch_low_b_branch_high";
       Let ("x", CstI(1, High), 
            If (
              Prim ("=", Var("x"), CstI(2, High)), CstB(true, Low), CstB (false, High)
@@ -167,7 +167,7 @@ let examples =
           )
     ) [] [];
     execWithFailure (
-      print_endline "_test_if_4_high_guard_b_branch_low_a_branch_high";
+      print_endline "_test_if_5_high_guard_b_branch_low_a_branch_high";
       Let ("x", CstI(1, High), 
            If (
              Prim ("=", Var("x"), CstI(2, High)), CstB(true, High), CstB (false, Low)
@@ -178,37 +178,37 @@ let examples =
     (* Prim test *)
 
     execWithoutFailure (
-      print_endline "_test_prim_1_comp_high_with_high_and_equals";
+      print_endline "_test_prim_1_mul_high_with_high";
       Prim (
-        "=", CstI(2, High), CstI(2, High)
+        "*", CstI(2, High), CstI(2, High)
       )
     ) [] [];
 
 
     execWithoutFailure (
-      print_endline "_test_prim_2_comp_low_with_low_and_equals";
+      print_endline "_test_prim_2_mul_low_with_low";
       Prim (
-        "=", CstI(2, Low), CstI(2, Low)
+        "*", CstI(2, Low), CstI(2, Low)
       )
     ) [] [];
 
     execWithFailure (
-      print_endline "_test_prim_3_comp_high_with_low_and_equals";
+      print_endline "_test_prim_3_mul_high_with_low";
       Prim (
-        "=", CstI(2, High), CstI(2, Low)
+        "*", CstI(2, High), CstI(2, Low)
       )
     ) [] [];
 
     execWithFailure (
-      print_endline "_test_prim_4_comp_low_with_high_and_equals";
+      print_endline "_test_prim_4_mul_low_with_high";
       Prim (
-        "=", CstI(2, Low), CstI(2, High)
+        "*", CstI(2, Low), CstI(2, High)
       )
     ) [] [];
 
 
     execWithoutFailure (
-      print_endline "_test_prim_1_sum_high_with_high_and_equals";
+      print_endline "_test_prim_1_sum_high_with_high";
       Prim (
         "+", CstI(2, High), CstI(2, High)
       )
@@ -216,26 +216,112 @@ let examples =
 
 
     execWithoutFailure (
-      print_endline "_test_prim_2_sum_low_with_low_and_equals";
+      print_endline "_test_prim_2_sum_low_with_low";
       Prim (
         "+", CstI(2, Low), CstI(2, Low)
       )
     ) [] [];
 
     execWithFailure (
-      print_endline "_test_prim_3_sum_high_with_low_and_equals";
+      print_endline "_test_prim_3_sum_high_with_low";
       Prim (
         "+", CstI(2, High), CstI(2, Low)
       )
     ) [] [];
 
     execWithFailure (
-      print_endline "_test_prim_4_sum_low_with_high_and_equals";
+      print_endline "_test_prim_4_sum_low_with_high";
       Prim (
         "+", CstI(2, Low), CstI(2, High)
       )
     ) [] [];
 
+    execWithoutFailure (
+      print_endline "_test_prim_1_diff_high_with_high";
+      Prim (
+        "-", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_diff_low_with_low";
+      Prim (
+        "-", CstI(2, Low), CstI(3, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_diff_high_with_low";
+      Prim (
+        "-", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_diff_low_with_high";
+      Prim (
+        "-", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
+
+    execWithoutFailure (
+      print_endline "_test_prim_1_equal_high_with_high";
+      Prim (
+        "=", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_equal_low_with_low";
+      Prim (
+        "=", CstI(2, Low), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_equal_high_with_low";
+      Prim (
+        "=", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_equal_low_with_high";
+      Prim (
+        "=", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
+
+    execWithoutFailure (
+      print_endline "_test_prim_1_less_high_with_high";
+      Prim (
+        "<", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_less_low_with_low";
+      Prim (
+        "<", CstI(1, Low), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_less_high_with_low";
+      Prim (
+        "<", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_less_low_with_high";
+      Prim (
+        "<", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
 
     (* Test funcall *)
 
