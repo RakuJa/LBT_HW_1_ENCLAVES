@@ -1,84 +1,351 @@
 open Enclave.Ast
 open Enclave.Interpreter
 
-let _test_gateway_1 = Enclave (
-  "myEnclave",
-   SecLet (
-    "password", CstI(5),
-   Gateway ("password", CstI(5), EndEnclave)
-  ), CstI(7)
-)
-
-let _test_gateway_2 = Enclave (
-  "myEnclave",
-  SecLet (
-   "x", CstI (1),
-   SecLet (
-    "f", 
-    Fun (
-      "y",
-      Prim ("+", Var ("x") , CstI 1)
-    ) 
-    ,
-   Gateway ("myGateway", Var ("f"), EndEnclave)
-  )), EnCall ("myEnclave", "myGateway", CstI (1))
-)
-
-let _test_gateway_3 = Enclave (
-  "myEnclave",
-   SecLet (
-   "password", CstI(5),
-   Gateway ("myGateway", Fun ("leak", Var ("password")), EndEnclave)
-  ), EnCall ("myEnclave", "myGateway", CstI (1))
-)
-
-let _test_gateway_4 = Gateway 
-   ("myGateway", Fun ("outside", Var ("password")), CstI (1))
-
-let _test_enclave_1 = Enclave (
-   "myEnclave1",
-   SecLet (
-    "password", CstI(5),
-   Enclave ("myEnclave2", CstI(5), EndEnclave)
-  ), CstI(7)
-)
-
-let _test_enclave_2 = Enclave (
-  "myEnclave", CstI (1), CstI (2)
-)
-
-let _test_untrusted_1 = IncludeUntrusted (
-   Let ("x", CstI (1), EndUntrusted), CstI (1)
-)
-
-let _test_untrusted_2 = IncludeUntrusted (
-   IncludeUntrusted (CstI (1), EndUntrusted), EndUntrusted
-)
-
-let _test_untrusted_3 = Enclave (
-  "myEnclave",
-  SecLet (
-   "x", CstI (1),
-   SecLet (
-    "f", 
-    Fun (
-      "y",
-      Prim ("+", Var ("x") , CstI 1)
-    ) 
-    ,
-   Gateway ("myGateway", Var ("f"), EndEnclave)
-  )), IncludeUntrusted (EnCall ("myEnclave", "myGateway", CstI (1)), EndUntrusted
-))
-
-let _test_1 = eval _test_gateway_1 [] []
-
 (*
-let _test_2 = eval _test_gateway_2 [] []
-let _test_3 = eval _test_gateway_3 [] []
-let _test_4 = eval _test_gateway_4 [] []
-let _test_5 = eval _test_enclave_1 [] []
-let _test_6 = eval _test_enclave_2 [] []
-let _test_7 = eval _test_untrusted_1 [] []
-let _test_8 = eval _test_untrusted_2 [] []
-let _test_9 = eval _test_untrusted_3 [] []
+  For testing purpose: test if the evaluation fails
 *)
+let execWithFailure test env stack =
+  let value = try eval test env stack with Failure _ -> Int (1, Low) in
+  assert (value = Int (1, Low))
+
+  (*
+    For testing purpose: test if the evaluation does not fail
+  *)
+let execWithoutFailure test env stack =
+  let value = try eval test env stack with Failure _ -> Int (0, Low) in
+  assert (value <> Int (0, Low))
+
+let examples =
+  [
+    execWithFailure (
+      print_endline "_test_gateway_1";
+      Enclave (
+        "myEnclave",
+        SecLet (
+          "password", CstI(5, High),
+          Gateway ("password", CstI(5, High), EndEnclave)
+        ), CstI(7, High)
+      )
+    ) [] [];
+    execWithoutFailure (
+      print_endline "_test_gateway_2";
+      Enclave (
+        "myEnclave",
+        SecLet (
+          "x", CstI (1, Low),
+          SecLet (
+            "f", 
+            Fun (
+              "y",
+              Prim ("+", Var ("x") , CstI(1, Low))
+            ) 
+            ,
+            Gateway ("myGateway", Var ("f"), EndEnclave)
+          )), EnCall ("myEnclave", "myGateway", CstI (1, High))
+      )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_gateway_3";
+      Enclave (
+        "myEnclave",
+        SecLet (
+          "password", CstI(5, High),
+          Gateway ("myGateway", Fun ("leak", Var ("password")), EndEnclave)
+        ), EnCall ("myEnclave", "myGateway", CstI (1, High))
+      )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_gateway_4";
+      Gateway 
+        ("myGateway", Fun ("outside", Var ("password")), CstI (1, High))
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_enclave_1";
+      Enclave (
+        "myEnclave1",
+        SecLet (
+          "password", CstI(5, High),
+          Enclave ("myEnclave2", CstI(5, High), EndEnclave)
+        ), CstI(7, High)
+      )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_enclave_2";
+      Enclave (
+        "myEnclave", CstI (1, High), CstI (2, High)
+      )
+    ) [] [];      
+    execWithFailure (
+      print_endline "_test_untrusted_1_high_fails";
+      IncludeUntrusted (
+        Let ("x", CstI (1, High), EndUntrusted), CstI (1, High)
+      )
+    ) [] [];
+    execWithoutFailure (
+      print_endline "_test_untrusted_1_low_succeed";
+      IncludeUntrusted (
+        Let ("x", CstI (1, Low), EndUntrusted), CstI (1, Low)
+      )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_untrusted_2_two_end_untrusted";
+      IncludeUntrusted (
+        IncludeUntrusted (CstI (1, Low), EndUntrusted), EndUntrusted
+      )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_untrusted_3_enclave_in_untrusted";
+      Enclave (
+        "myEnclave",
+        SecLet (
+          "x", CstI (1, Low),
+          SecLet (
+            "f", 
+            Fun (
+              "y",
+              Prim (
+                "+", Var ("x") , CstI (1, Low)
+              )
+            ),
+            Gateway (
+              "myGateway", Var ("f"), EndEnclave
+            )
+          )
+        ), 
+        IncludeUntrusted (
+          EnCall (
+            "myEnclave", "myGateway", CstI (1, High)
+          ), 
+          EndUntrusted
+        )
+      )
+    ) [] [];
+
+
+    (* Declassify test *)
+
+    execWithoutFailure (
+      print_endline "_test_declassify_1";
+      Declassify (
+        Prim ("+", CstI(1, High), CstI(2, High))
+      )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_declassify_2";
+      Declassify (
+        Prim ("+", CstI(1, Low), CstI(2, Low))
+      )
+    ) [] [];
+
+
+    (* If test *)
+
+    execWithoutFailure (
+      print_endline "_test_if_1_high_guard_all_high_branch";
+      Let ("x", CstI(1, High), 
+           If (
+             Prim ("<", Var("x"), CstI(2, High)), CstI(2, High), CstI(3, High)
+           )
+          )
+    ) [] [];
+    execWithoutFailure (
+      print_endline "_test_if_2_low guard_all_low_branch";
+      Let ("x", CstI(1, Low), 
+           If (
+             Prim ("<", Var("x"), CstI(2, Low)), CstI(2, Low), CstI(3, Low)
+           )
+          )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_if_3_high_guard_all_low_branch";
+      Let ("x", CstI(1, High), 
+           If (
+             Prim ("=", Var("x"), CstI(2, High)), CstB(true, Low), CstB (false, Low)
+           )
+          )
+    ) [] [];
+    execWithoutFailure (
+      print_endline "_test_if_4_high_guard_a_branch_low_b_branch_high";
+      Let ("x", CstI(1, High), 
+           If (
+             Prim ("=", Var("x"), CstI(2, High)), CstB(true, Low), CstB (false, High)
+           )
+          )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_if_5_high_guard_b_branch_low_a_branch_high";
+      Let ("x", CstI(1, High), 
+           If (
+             Prim ("=", Var("x"), CstI(2, High)), CstB(true, High), CstB (false, Low)
+           )
+          )
+    ) [] [];
+
+    (* Prim test *)
+
+    execWithoutFailure (
+      print_endline "_test_prim_1_mul_high_with_high";
+      Prim (
+        "*", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_mul_low_with_low";
+      Prim (
+        "*", CstI(2, Low), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_mul_high_with_low";
+      Prim (
+        "*", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_mul_low_with_high";
+      Prim (
+        "*", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_1_sum_high_with_high";
+      Prim (
+        "+", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_sum_low_with_low";
+      Prim (
+        "+", CstI(2, Low), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_sum_high_with_low";
+      Prim (
+        "+", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_sum_low_with_high";
+      Prim (
+        "+", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
+
+    execWithoutFailure (
+      print_endline "_test_prim_1_diff_high_with_high";
+      Prim (
+        "-", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_diff_low_with_low";
+      Prim (
+        "-", CstI(2, Low), CstI(3, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_diff_high_with_low";
+      Prim (
+        "-", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_diff_low_with_high";
+      Prim (
+        "-", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
+
+    execWithoutFailure (
+      print_endline "_test_prim_1_equal_high_with_high";
+      Prim (
+        "=", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_equal_low_with_low";
+      Prim (
+        "=", CstI(2, Low), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_equal_high_with_low";
+      Prim (
+        "=", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_equal_low_with_high";
+      Prim (
+        "=", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
+
+    execWithoutFailure (
+      print_endline "_test_prim_1_less_high_with_high";
+      Prim (
+        "<", CstI(2, High), CstI(2, High)
+      )
+    ) [] [];
+
+
+    execWithoutFailure (
+      print_endline "_test_prim_2_less_low_with_low";
+      Prim (
+        "<", CstI(1, Low), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_3_less_high_with_low";
+      Prim (
+        "<", CstI(2, High), CstI(2, Low)
+      )
+    ) [] [];
+
+    execWithFailure (
+      print_endline "_test_prim_4_less_low_with_high";
+      Prim (
+        "<", CstI(2, Low), CstI(2, High)
+      )
+    ) [] [];
+
+    (* Test funcall *)
+
+    execWithoutFailure (
+      print_endline "_test_funcall_1";
+      Call (
+        Fun ("f", CstI(1, High)), CstB(false, Low)
+      )
+    ) [] [];
+  ]
+
+let rec execute_examples ex =
+  print_endline "Running test case";
+  match ex with
+  | [] -> print_endline "Done"
+  | x :: t ->
+    x;
+    execute_examples t
+
+let _ = print_endline "--------------\nStarting tests"
+let () = execute_examples examples
