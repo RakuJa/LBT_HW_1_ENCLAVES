@@ -75,30 +75,36 @@ let examples =
         "myEnclave", CstI (1, High), CstI (2, High)
       )
     ) [] [];      
-    execWithoutFailure (
-      print_endline "_test_untrusted_1";
+    execWithFailure (
+      print_endline "_test_untrusted_1_high_fails";
       IncludeUntrusted (
         Let ("x", CstI (1, High), EndUntrusted), CstI (1, High)
       )
     ) [] [];
-    execWithFailure (
-      print_endline "_test_untrusted_2";
+    execWithoutFailure (
+      print_endline "_test_untrusted_1_low_succeed";
       IncludeUntrusted (
-        IncludeUntrusted (CstI (1, High), EndUntrusted), EndUntrusted
+        Let ("x", CstI (1, Low), EndUntrusted), CstI (1, Low)
       )
     ) [] [];
     execWithFailure (
-      print_endline "_test_untrusted_3";
+      print_endline "_test_untrusted_2_two_end_untrusted";
+      IncludeUntrusted (
+        IncludeUntrusted (CstI (1, Low), EndUntrusted), EndUntrusted
+      )
+    ) [] [];
+    execWithFailure (
+      print_endline "_test_untrusted_3_enclave_in_untrusted";
       Enclave (
         "myEnclave",
         SecLet (
-          "x", CstI (1, High),
+          "x", CstI (1, Low),
           SecLet (
             "f", 
             Fun (
               "y",
               Prim (
-                "+", Var ("x") , CstI (1, High)
+                "+", Var ("x") , CstI (1, Low)
               )
             ),
             Gateway (
